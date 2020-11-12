@@ -1,0 +1,2 @@
+{{BAD_STAMPINGS_CRON}} sleep `shuf -i 0-{{CRON_RANDOM_SLEEP}} -n 1` && /client/badStampings.sh >/dev/null 2>&1
+{{STAMPINGS_CRON}} sleep `shuf -i 0-{{CRON_RANDOM_SLEEP}} -n 1` && /client/stampings.sh >/dev/null 2>&1

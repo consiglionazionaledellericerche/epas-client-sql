@@ -1,0 +1,62 @@
+version: '3'
+
+services:
+
+#############################################################
+##  Client per prelevare le timbrature da un db MsSQL o MySQL
+#############################################################
+  epas-client:
+    image: docker-registry.services.iit.cnr.it/epas/epas-client-mssql:master
+    container_name: epas-client
+
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
+      - ${PWD}/data:/client/data
+
+    environment:
+      - TZ=Europe/Rome
+
+      ##################     PARAMETRI PER L'INVIO TIMBRATURE AD EPAS    #########################        
+      - SERVER_HOST=${SERVER_HOST}            # Obbligatorio. Host del server di ePAS
+                                              # Indirizzo del server di ePAS. Esempio: epas.devel.iit.cnr.it
+      # - SERVER_PORT=${SERVER_PORT}          # Opzionale, default 443. Porta per l'accesso a ePAS 
+      # - SERVER_PROTOCOL=${SERVER_PROTOCOL}  # Optionale, default https. Possibili valori: http, https
+      - SERVER_USER=${SERVER_USER}            # Obbligatorio. Utente della "sorgente timbrature" di ePAS.
+      - SERVER_PASSWORD=${SERVER_PASSWORD}    # Obbligatorio. Password della "sorgente timbrature" di ePAS
+
+      # ##################     PARAMETRI L'ACCESSO AL DATABASE SERVER    ##########################              
+      - DB_TYPE=${DB_TYPE}             # Obbligatorio. Tipi supportati mysql, mssql.
+      - DB_HOST=${DB_HOST}             # Obbligatorio
+      - DB_PORT=${DB_PORT}             # Obbligatorio.
+      # - DB_NAME=${DB_NAME}           # Opzionale.
+      - DB_USER=${DB_USER}             # Obbligatorio
+      - DB_PASSWORD=${DB_PASSWORD}     # Obbligatorio
+           
+      # ############# PARAMETRI PER MAPPING COLONNE DB E CAMPI TIMBRATURA EPAS  ####################
+      - STAMPINGS_TABLE=${STAMPINGS_TABLE}                  # Nome della tabella da cui prelevare le timbrature
+      
+      - DB_FIELDS_ID_TIMBRATURA=${DB_FIELDS_ID_TIMBRATURA}  # Campo del DB corrispondente ad un ID univoco incrementale
+      - DB_FIELDS_BADGE=${DB_FIELDS_BADGE}                  # Campo del DB corrispondente al badge
+      - DB_FIELDS_VERSO=${DB_FIELDS_VERSO}                  # Campo del DB corrispondente al verso
+      - DB_FIELDS_VERSO_ENTRATA=${DB_FIELDS_VERSO_ENTRATA}  # Valore corrispondente al verso di entrata, per esempio "0" o "E"
+      
+      - DB_FIELDS_DATAORA=${DB_FIELDS_DATAORA}              # Campo del DB corrispondente alla data e ora della timbratura
+      # I due campi seguenti sono in alternativa al campo DB_FIELDS_DATAORA
+      #- DB_FIELDS_DATA=${DB_FIELDS_DATA}                   # Campo del DB corrispondente alla data della timbratura
+      #- DB_FIELDS_ORA=${DB_FIELDS_ORA}                     # Campo del DB corrispondente all'ora della timbratura
+            
+      - DB_FIELDS_CAUSALE=${DB_FIELDS_CAUSALE}              # Campo del DB corrispondente alla causale delle timbratura
+      - DB_FIELDS_CAUSALE_MOTIVI_DI_SERVIZIO=${DB_FIELDS_CAUSALE_MOTIVI_DI_SERVIZIO}    # Per montelibretti 0001
+      - DB_FIELDS_CAUSALE_PAUSA_PRANZO=${DB_FIELDS_CAUSALE_PAUSA_PRANZO}                # Per montelibretti 0008
+      #- DB_FIELDS_LETTORE=${DB_FIELDS_LETTORE}             # Campo del DB corrispondente al lettore
+
+      ################### PARAMETRI GENERICI GENERALMENTE DA NON IMPOSTARE #######################
+      # - DAYS_BEFORE=          # Opzionale. Default: 30 -- Il numero di giorni a partire da oggi dal quale iniziare il download delle timbrature e assenze.
+      # - CRON_RANDOM_SLEEP=    # Optionale. Default: 180. Numero di secondi di attesa massima ad ogni avvio del cron.
+      # - STAMPINGS_CRON=* * * * *     # Default: ogni 8 minuti. Utilizzare il formato richiesto dal crontab. Riferimenti -> https://en.wikipedia.org/wiki/Cron#Examples
+      # - BAD_STAMPINGS_CRON=* * * * *  # Default: Una volta al giorno all'una di notte
+      # - RETRY_CODES=                 # Predefiniti: 401, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509. Aggiungere i valori separati da virgola
+      # - MAX_BAD_STAMPING_DAYS=       # Default: 10 giorni. Il numero di giorni dopo il quale scartare le timbrature non inserite correttamente sul server.
+
+    restart: unless-stopped

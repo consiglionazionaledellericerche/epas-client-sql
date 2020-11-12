@@ -1,0 +1,120 @@
+#!/bin/bash
+set -e
+
+if [ -z "${DB_TYPE}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_USER}" ] || [ -z "${DB_PASSWORD}" ]; then
+    echo "ERROR: "
+    echo "Per favore specifica i parametri per la connessione al db DB_TYPE, DB_HOST, DB_USER, DB_PASSWORD"
+    exit 1
+fi
+
+if [ "${DB_TYPE}" != "mysql" ] && [ "${DB_TYPE}" != "mssql" ]; then  
+    echo "ERROR: "
+    echo "I tipi di database supportati per prelevare le timbrature al momento sono: mysql, mssql."
+    echo "Specifica un tipo di database supportato tramite il parametro DB_TYPE"
+    exit 1  
+fi
+ 
+if [ -z "${SERVER_HOST}" ] || [ -z "${SERVER_USER}" ] || [ -z "${SERVER_PASSWORD}" ]; then
+    echo "ERROR: "
+    echo "Per favore specifica i parametri per la connessione ad ePAS SERVER_HOST, SERVER_USER, SERVER_PASSWORD"
+    exit 1
+fi
+
+DB_TYPE=${DB_TYPE}
+DB_HOST=${DB_HOST}
+DB_PORT=${DB_PORT}
+DB_NAME=${DB_NAME}
+STAMPINGS_TABLE=${STAMPINGS_TABLE:-[dbstart].[dbo].[GESCAR.TIMBRATURE_EPAS_V]}
+
+SERVER_HOST=${SERVER_HOST}
+SERVER_PORT=${SERVER_PORT:-443}
+SERVER_PROTOCOL=${SERVER_PROTOCOL:-https}
+SERVER_USER=${SERVER_USER}
+SERVER_PASSWORD=${SERVER_PASSWORD}
+
+DAYS_BEFORE=${DAYS_BEFORE:-30}
+CONNECTION_TIMEOUT=${CONNECTION_TIMEOUT:-60}
+RETRY_CODES=${RETRY_CODES}
+MAX_BAD_STAMPING_DAYS=${MAX_BAD_STAMPING_DAYS:-10}
+
+if [ ${SERVER_PORT} -eq 80 ] || [ ${SERVER_PORT} -eq 443 ]; then
+	SERVER_ADDRESS=$SERVER_HOST
+else
+	SERVER_ADDRESS="$SERVER_HOST:$SERVER_PORT"
+fi
+
+CRON_RANDOM_SLEEP=${CRON_RANDOM_SLEEP:-180}
+STAMPINGS_CRON=${STAMPINGS_CRON:-*/8 6-23 * * *}
+BAD_STAMPINGS_CRON=${BAD_STAMPINGS_CRON:-0 1 * * *}
+
+cp /client/docker_conf/connection.properties /client/conf/
+
+sed -i 's#{{DB_TYPE}}#'"${DB_TYPE}"'#' /client/conf/connection.properties
+
+sed -i 's#{{DB_HOST}}#'"${DB_HOST}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_PORT}}#'"${DB_PORT}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_NAME}}#'"${DB_NAME}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_USER}}#'"${DB_USER}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_PASSWORD}}#'"${DB_PASSWORD}"'#' /client/conf/connection.properties
+
+sed -i 's#{{DB_FIELDS_ID_TIMBRATURA}}#'"${DB_FIELDS_ID_TIMBRATURA}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_BADGE}}#'"${DB_FIELDS_BADGE}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_VERSO}}#'"${DB_FIELDS_VERSO}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_VERSO_ENTRATA}}#'"${DB_FIELDS_VERSO_ENTRATA}"'#' /client/conf/connection.properties
+
+if [ -z "${DB_FIELDS_DATAORA}" ]; then
+  sed -n '/DB_FIELDS_DATAORA/!p' -i /client/conf/connection.properties
+else
+  sed 's#{{DB_FIELDS_DATAORA}}#'"${DB_FIELDS_DATAORA}"'#' -i /client/conf/connection.properties
+fi
+
+sed -i 's#{{DB_FIELDS_DATA}}#'"${DB_FIELDS_DATA}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_ORA}}#'"${DB_FIELDS_ORA}"'#' /client/conf/connection.properties
+
+sed -i 's#{{DB_FIELDS_CAUSALE}}#'"${DB_FIELDS_CAUSALE}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_CAUSALE_MOTIVI_DI_SERVIZIO}}#'"${DB_FIELDS_CAUSALE_MOTIVI_DI_SERVIZIO}"'#' /client/conf/connection.properties
+sed -i 's#{{DB_FIELDS_CAUSALE_PAUSA_PRANZO}}#'"${DB_FIELDS_CAUSALE_PAUSA_PRANZO}"'#' /client/conf/connection.properties
+
+sed -i 's#{{DB_FIELDS_LETTORE}}#'"${DB_FIELDS_LETTORE}"'#' /client/conf/connection.properties
+
+sed -i 's#{{STAMPINGS_TABLE}}#'"${STAMPINGS_TABLE}"'#' /client/conf/connection.properties
+
+sed -i 's#{{SERVER_PROTOCOL}}#'"${SERVER_PROTOCOL}"'#' /client/conf/connection.properties
+sed -i 's#{{SERVER_ADDRESS}}#'"${SERVER_ADDRESS}"'#' /client/conf/connection.properties
+sed -i 's#{{SERVER_USER}}#'"${SERVER_USER}"'#' /client/conf/connection.properties
+sed -i 's#{{SERVER_PASSWORD}}#'"${SERVER_PASSWORD}"'#' /client/conf/connection.properties
+sed -i 's#{{DAYS_BEFORE}}#'"${DAYS_BEFORE}"'#' /client/conf/connection.properties
+
+if [ -z "${CONNECTION_TIMEOUT}" ]; then
+  sed -n '/CONNECTION_TIMEOUT/!p' -i /client/conf/connection.properties
+else
+  sed 's#{{CONNECTION_TIMEOUT}}#'"${CONNECTION_TIMEOUT}"'#' -i /client/conf/connection.properties
+fi
+
+if [ -z "${MAX_BAD_STAMPING_DAYS}" ]; then
+  sed -n '/MAX_BAD_STAMPING_DAYS/!p' -i /client/conf/connection.properties
+else
+  sed 's#{{MAX_BAD_STAMPING_DAYS}}#'"${MAX_BAD_STAMPING_DAYS}"'#' -i /client/conf/connection.properties
+fi
+
+if [ -z "${RETRY_CODES}" ]; then
+  sed -n '/RETRY_CODES/!p' -i /client/conf/connection.properties
+else
+  sed 's#{{RETRY_CODES}}#'"${RETRY_CODES}"'#' -i /client/conf/connection.properties
+fi
+
+sed -i 's#{{STAMPINGS_CRON}}#'"${STAMPINGS_CRON}"'#' /client/docker_conf/cron
+sed -i 's#{{CRON_RANDOM_SLEEP}}#'"${CRON_RANDOM_SLEEP}"'#' /client/docker_conf/cron
+
+if [ -z "${BAD_STAMPINGS_CRON}" ]; then
+  sed -n '/BAD_STAMPINGS_CRON/!p' -i /client/docker_conf/cron
+else
+  sed 's#{{BAD_STAMPINGS_CRON}}#'"${BAD_STAMPINGS_CRON}"'#' -i /client/docker_conf/cron
+fi
+
+cp /client/docker_conf/cron /tmp
+
+crontab /tmp/cron
+crond -f
+
+exit 0
