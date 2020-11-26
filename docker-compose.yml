@@ -5,7 +5,7 @@ services:
 #############################################################
 ##  Client per prelevare le timbrature da un db MsSQL o MySQL
 #############################################################
-  epas-client:
+  client:
     image: consiglionazionalericerche/epas-client-sql
     container_name: epas-client
 
