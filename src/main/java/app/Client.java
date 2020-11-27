@@ -50,7 +50,6 @@ import utils.HttpActions;
 public final class Client {
 
   private static final String CONNECTION_PROPS_FILE = "conf/connection.properties";
-  private static final String DEFAULT_PORT = "1433";
   public static Set<Integer> RETRY_CODES = Sets.newHashSet(401, 404, 500, 501, 502, 503, 504, 505, 506, 507, 508, 509);
 
   public static int CONNECTION_TIMEOUT; // in seconds
@@ -123,9 +122,9 @@ public final class Client {
       }
     }
 
-    DB_TYPE = DbType.valueOf(properties.getProperty("db.type", "mssql"));
+    DB_TYPE = DbType.valueOf(properties.getProperty("db.type"));
     DB_HOST = properties.getProperty("db.host");
-    DB_PORT = Integer.parseInt(properties.getProperty("db.port", DEFAULT_PORT));
+    DB_PORT = Integer.parseInt(properties.getProperty("db.port"));
     DB_NAME = properties.getProperty("db.name");
     DB_USER = properties.getProperty("db.user");
     DB_PASSWORD = properties.getProperty("db.password");

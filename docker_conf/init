@@ -1,9 +1,9 @@
 #!/bin/bash
 set -e
 
-if [ -z "${DB_TYPE}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_USER}" ] || [ -z "${DB_PASSWORD}" ]; then
+if [ -z "${DB_TYPE}" ] || [ -z "${DB_HOST}" ] || [ -z "${DB_USER}" ] || [ -z "${DB_PASSWORD}" || [ -z "${DB_PORT}" ]; then
     echo "ERROR: "
-    echo "Per favore specifica i parametri per la connessione al db DB_TYPE, DB_HOST, DB_USER, DB_PASSWORD"
+    echo "Per favore specifica i parametri per la connessione al db DB_TYPE, DB_HOST, DB_PORT, DB_USER, DB_PASSWORD"
     exit 1
 fi
 
