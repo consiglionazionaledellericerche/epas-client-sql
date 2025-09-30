@@ -60,6 +60,7 @@ public class DbUtils {
    * @throws IllegalAccessException 
    * @throws InstantiationException 
    */
+  @SuppressWarnings("deprecation")
   public Connection getDBConnection(DbType dbType, final String serverName, 
       final int port, final String dbName,
       final String dbUser, final String dbPassword) throws SQLException, InstantiationException, IllegalAccessException {
@@ -145,7 +146,7 @@ public class DbUtils {
         stamp.IDTIMBRATURA = rs.getLong(Client.DB_FIELDS_ID_TIMBRATURA);
         if (Client.DB_FIELDS_DATAORA.isPresent()) {
           
-          final Timestamp data = rs.getTimestamp(Client.DB_FIELDS_DATAORA.get());          
+          final Timestamp data = rs.getTimestamp(Client.DB_FIELDS_DATAORA.get());
           if (data != null) {
             stamp.DATA = LocalDateTime.fromDateFields(data);
           } else {
@@ -155,26 +156,29 @@ public class DbUtils {
             continue;
           }
         } else {
+          
           final Date date = rs.getDate(Client.DB_FIELDS_DATA.get());
           final Time hour = rs.getTime(Client.DB_FIELDS_ORA.get());
-         
+
           //Ci sono alcune timbrature che non hanno la data valorizzata
           if (date == null || hour == null) {
             logger.warn(String.format(
                 "Ignorara timbratura con id = %s perché ha data o ora null", stamp.IDTIMBRATURA));
-            continue;            
+            continue;
           }
           
           logger.debug(String.format("Timbratura id=%s -> data = %s, ora = %s.", 
               stamp.IDTIMBRATURA, date, hour));
-          
+
           // Trasformazione dei due campi data e ora in un unico LocalDateTime
-          date.setTime(date.getTime() + hour.getTime());
+          //Mats.abs è necessario per evitare valori negativi per orari tra le 00:00 e le 02:00
+          //in funzione dell'ora legale e del fuso orario
+          date.setTime(date.getTime() + Math.abs(hour.getTime()));
           Calendar cal = Calendar.getInstance();
           cal.setTime(hour);
           stamp.DATA = new LocalDateTime(date)
-              .withTime(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), 0);          
-        }        
+              .withTime(cal.get(Calendar.HOUR_OF_DAY), cal.get(Calendar.MINUTE), cal.get(Calendar.SECOND), 0);
+        }
 
         stamp.VERSO = rs.getString(Client.DB_FIELDS_VERSO);
         stamp.BADGE = rs.getString(Client.DB_FIELDS_BADGE);
